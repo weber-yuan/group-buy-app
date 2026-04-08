@@ -43,9 +43,9 @@ rm -rf .next && npm run dev
 - Roles: `user` (default), `admin`
 - **Cookie setting:** Always use `NextResponse.cookies.set()` — never `(await cookies()).set()` from `next/headers` in Route Handlers, as the latter does not reliably emit `Set-Cookie` on Vercel production
 
-### Route Protection
-- `src/middleware.ts` re-exports `proxy` as `middleware` and re-exports `config` from `src/proxy.ts`
-- `src/proxy.ts` contains the actual logic — do not add other exports here (extra exports break Next.js routing)
+### Route Protection (`src/proxy.ts`)
+- Next.js 16 uses `proxy.ts` (not `middleware.ts`) as the proxy entry point — do **not** create `src/middleware.ts`
+- Exports `proxy(request)` function and `config` — Next.js picks these up automatically
 - `/dashboard/*` requires a valid JWT; redirects to `/login` if missing/invalid
 - `/admin/*` additionally requires `role === 'admin'`; non-admin redirects to `/`
 
