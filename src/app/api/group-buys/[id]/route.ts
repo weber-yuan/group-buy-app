@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { getDb } from '@/lib/db';
+import { del } from '@vercel/blob';
+import { parseImages } from '@/lib/utils';
 
 type GbRow = { id: number; organizer_id: number; [key: string]: unknown };
 
@@ -103,7 +105,32 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     if (!gb) return Response.json({ error: '找不到' }, { status: 404 });
     if (gb.organizer_id !== user.id && user.role !== 'admin') return Response.json({ error: '無權限' }, { status: 403 });
 
+    // Collect all Vercel Blob image URLs to delete
+    const gbRow = gb as unknown as { image_url?: string };
+    const optResult = await db.execute({ sql: 'SELECT image_url FROM options WHERE group_buy_id = ?', args: [gb.id] });
+    const blobUrls: string[] = [
+      ...parseImages(gbRow.image_url ?? null),
+      ...(optResult.rows as unknown as { image_url: string | null }[]).flatMap(r => parseImages(r.image_url)),
+    ].filter(url => url.includes('vercel-storage.com') || url.includes('blob.vercel'));
+
+    // Delete child records
+    const orderResult = await db.execute({ sql: 'SELECT id FROM orders WHERE group_buy_id = ?', args: [gb.id] });
+    const orderIds = (orderResult.rows as unknown as { id: number }[]).map(r => r.id);
+    if (orderIds.length > 0) {
+      await db.execute({
+        sql: `DELETE FROM order_items WHERE order_id IN (${orderIds.map(() => '?').join(',')})`,
+        args: orderIds,
+      });
+    }
+    await db.execute({ sql: 'DELETE FROM orders WHERE group_buy_id = ?', args: [gb.id] });
+    await db.execute({ sql: 'DELETE FROM options WHERE group_buy_id = ?', args: [gb.id] });
     await db.execute({ sql: 'DELETE FROM group_buys WHERE id = ?', args: [gb.id] });
+
+    // Delete images from Vercel Blob (best-effort)
+    if (blobUrls.length > 0) {
+      await del(blobUrls).catch(e => console.error('[DELETE blob images]', e));
+    }
+
     return Response.json({ ok: true });
   } catch (e) {
     console.error('[DELETE /api/group-buys/[id]]', e);
