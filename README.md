@@ -14,6 +14,7 @@
 ## 功能特色
 
 - 使用者註冊 / 登入 / 忘記密碼（Email 重設）
+- 個人資料管理（更改顯示名稱、Email、密碼）
 - 建立與管理團購（含圖片上傳、多規格選項）
 - 公開團購頁面（以 slug 識別）
 - 訂單管理（建立、查看、付款確認）
@@ -82,7 +83,7 @@ src/
 ├── app/
 │   ├── api/          # API Route Handlers
 │   ├── buy/          # 公開團購頁面
-│   ├── dashboard/    # 使用者後台
+│   ├── dashboard/    # 使用者後台（含個人資料頁）
 │   └── admin/        # 管理員後台
 ├── components/       # 共用元件（Navbar、GlassCard、GroupBuyForm）
 ├── lib/
@@ -90,8 +91,7 @@ src/
 │   ├── auth.ts       # JWT 驗證工具
 │   ├── email.ts      # 密碼重設 Email
 │   └── utils.ts      # 共用工具函式
-├── middleware.ts     # 路由保護（/dashboard、/admin）
-└── proxy.ts          # Middleware 邏輯
+└── proxy.ts          # 路由保護（/dashboard、/admin）
 scripts/
 └── setup-db.mjs      # 資料庫初始化與管理員建立
 ```
