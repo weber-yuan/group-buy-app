@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { writeFile } from 'fs/promises';
-import path from 'path';
+import { put } from '@vercel/blob';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: NextRequest) {
@@ -20,13 +19,13 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: '圖片不得超過 5MB' }, { status: 400 });
   }
 
-  const ext = file.name.split('.').pop() || 'jpg';
-  const filename = `${uuidv4()}.${ext}`;
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-  const filePath = path.join(uploadDir, filename);
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(filePath, buffer);
-
-  return Response.json({ url: `/uploads/${filename}` });
+  try {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const filename = `uploads/${uuidv4()}.${ext}`;
+    const blob = await put(filename, file, { access: 'public' });
+    return Response.json({ url: blob.url });
+  } catch (e) {
+    console.error('[POST /api/upload]', e);
+    return Response.json({ error: '上傳失敗' }, { status: 500 });
+  }
 }

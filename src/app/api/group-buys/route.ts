@@ -10,16 +10,12 @@ export async function GET(request: NextRequest) {
     const user = await getCurrentUser();
 
     if (mine && user) {
-      const rows = db.prepare(
-        'SELECT * FROM group_buys WHERE organizer_id = ? ORDER BY created_at DESC'
-      ).all(user.id);
-      return Response.json(rows);
+      const result = await db.execute({ sql: 'SELECT * FROM group_buys WHERE organizer_id = ? ORDER BY created_at DESC', args: [user.id] });
+      return Response.json(result.rows);
     }
 
-    const rows = db.prepare(
-      'SELECT g.*, u.display_name as organizer_name FROM group_buys g JOIN users u ON g.organizer_id = u.id WHERE g.is_public = 1 ORDER BY g.created_at DESC'
-    ).all();
-    return Response.json(rows);
+    const result = await db.execute({ sql: 'SELECT g.*, u.display_name as organizer_name FROM group_buys g JOIN users u ON g.organizer_id = u.id WHERE g.is_public = 1 ORDER BY g.created_at DESC', args: [] });
+    return Response.json(result.rows);
   } catch (e) {
     console.error('[GET /api/group-buys]', e);
     return Response.json({ error: '伺服器錯誤' }, { status: 500 });
@@ -33,16 +29,12 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { title, description, image_url, start_date, end_date, is_public, options } = body;
-
-    if (!title || !start_date || !end_date) {
-      return Response.json({ error: '必填欄位缺少' }, { status: 400 });
-    }
+    if (!title || !start_date || !end_date) return Response.json({ error: '必填欄位缺少' }, { status: 400 });
 
     const db = getDb();
 
-    // Generate a unique random slug (plain while loop — avoids strict TS uninitialised-var warning)
     let slug = Math.random().toString(36).slice(2, 10);
-    while (db.prepare('SELECT id FROM group_buys WHERE slug = ?').get(slug)) {
+    while ((await db.execute({ sql: 'SELECT id FROM group_buys WHERE slug = ?', args: [slug] })).rows[0]) {
       slug = Math.random().toString(36).slice(2, 10);
     }
 
@@ -50,17 +42,21 @@ export async function POST(request: NextRequest) {
       ? JSON.stringify(image_url.filter(Boolean))
       : (image_url || null);
 
-    const result = db.prepare(
-      'INSERT INTO group_buys (slug, title, description, image_url, organizer_id, start_date, end_date, is_public) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(slug, title, description || null, imageUrlValue, user.id, start_date, end_date, is_public ? 1 : 0);
+    const result = await db.execute({
+      sql: 'INSERT INTO group_buys (slug, title, description, image_url, organizer_id, start_date, end_date, is_public) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      args: [slug, title, description || null, imageUrlValue, user.id, start_date, end_date, is_public ? 1 : 0],
+    });
 
-    const groupBuyId = result.lastInsertRowid as number;
+    const groupBuyId = Number(result.lastInsertRowid);
 
     if (Array.isArray(options)) {
-      const stmt = db.prepare('INSERT INTO options (group_buy_id, label, name, description, image_url, sort_order) VALUES (?, ?, ?, ?, ?, ?)');
-      options.forEach((opt: { label: string; name: string; description?: string; image_url?: string }, i: number) => {
-        stmt.run(groupBuyId, opt.label, opt.name, opt.description || null, opt.image_url || null, i);
-      });
+      for (let i = 0; i < options.length; i++) {
+        const opt = options[i] as { label: string; name: string; description?: string; image_url?: string };
+        await db.execute({
+          sql: 'INSERT INTO options (group_buy_id, label, name, description, image_url, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+          args: [groupBuyId, opt.label, opt.name, opt.description || null, opt.image_url || null, i],
+        });
+      }
     }
 
     return Response.json({ id: groupBuyId, slug });

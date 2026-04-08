@@ -44,7 +44,7 @@ export default function BuyPage() {
           const opts = (d.options || (gbData.options as Option[]) || []) as Option[];
           const { options: _opts, ...gbInfo } = gbData;
           void _opts;
-          setGb(gbInfo as GroupBuy);
+          setGb(gbInfo as unknown as GroupBuy);
           setOptions(opts);
           const initQ: Record<number, number> = {};
           for (const opt of opts) initQ[opt.id] = 0;
