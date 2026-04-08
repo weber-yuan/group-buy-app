@@ -99,6 +99,13 @@ Two overlapping XLSX export routes exist (minor format differences):
 - `PATCH /api/auth/profile` — updates `display_name`, `email`, and optionally `password` (requires `current_password` for password change); re-issues JWT on success
 - `/api/auth/me` returns JWT payload **plus** `email` fetched from DB (email is not stored in the JWT)
 - After a successful profile update the cookie is refreshed so Navbar reflects the new display name immediately
+- Registration does **not** collect email — password recovery is admin-only
+
+### Admin (`/admin`, `/api/admin/`)
+- `PATCH /api/admin/users/[id]` — resets any user's password (admin only, no current-password required)
+- `DELETE /api/admin/users/[id]` — deletes user; cannot delete self
+- `DELETE /api/admin/group-buys/[id]` — deletes group buy via the shared group-buy delete logic
+- Deleting a group buy cascades: removes `order_items` → `orders` → `options` → `group_buys` and calls `del()` on all Vercel Blob image URLs
 
 ### Components (`src/components/`)
 | Component | Purpose |
@@ -128,7 +135,4 @@ Two overlapping XLSX export routes exist (minor format differences):
 | `JWT_SECRET` | JWT signing secret |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob access token (auto-injected when Blob store linked) |
 | `NEXT_PUBLIC_BASE_URL` | Full origin URL (used in password reset email links) |
-| `EMAIL_HOST/PORT/USER/PASS` | SMTP config; if `EMAIL_USER` is unset, reset links are console-logged |
-
-### Email / Password Reset
-`src/lib/email.ts` sends password reset emails via nodemailer. If `EMAIL_USER` env var is absent, the reset link is printed to the server console (dev mode).
+| `EMAIL_HOST/PORT/USER/PASS` | SMTP config (optional); if `EMAIL_USER` is unset, reset links log to console |
