@@ -177,13 +177,6 @@ export default function GroupBuyForm({ initialData, onSubmit, submitLabel, loadi
         : form;
       onSubmit(combined);
     }} className="flex flex-col gap-6">
-      <div className="flex justify-end">
-        <button type="button" onClick={autoFill}
-          className="text-xs bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 px-3 py-2 rounded-lg hover:bg-yellow-500/35 transition-colors">
-          🧪 測試自動填寫
-        </button>
-      </div>
-
       <GlassCard className="p-6 flex flex-col gap-4">
         <h2 className="text-lg font-semibold text-white">基本資訊</h2>
         <div>
