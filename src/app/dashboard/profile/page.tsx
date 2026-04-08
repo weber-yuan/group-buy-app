@@ -11,7 +11,6 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState('');
 
   const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -20,7 +19,6 @@ export default function ProfilePage() {
     fetch('/api/auth/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/login'); return; }
       setDisplayName(d.user.display_name);
-      setEmail(d.user.email ?? '');
       setLoading(false);
     });
   }, [router]);
@@ -37,7 +35,7 @@ export default function ProfilePage() {
 
     setSaving(true);
     try {
-      const body: Record<string, string> = { display_name: displayName, email };
+      const body: Record<string, string> = { display_name: displayName };
       if (newPassword) {
         body.current_password = currentPassword;
         body.new_password = newPassword;
@@ -77,17 +75,6 @@ export default function ProfilePage() {
               value={displayName}
               onChange={e => setDisplayName(e.target.value)}
               required
-            />
-          </div>
-
-          <div>
-            <label className="block text-white/70 text-sm mb-1">電子郵件</label>
-            <input
-              className="glass-input"
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="選填"
             />
           </div>
 
