@@ -96,10 +96,10 @@ Two overlapping XLSX export routes exist (minor format differences):
 | `parseImages(imageUrl)` | Decodes plain URL or JSON array → `string[]` |
 
 ### Profile / Account (`/api/auth/profile`, `/dashboard/profile`)
-- `PATCH /api/auth/profile` — updates `display_name`, `email`, and optionally `password` (requires `current_password` for password change); re-issues JWT on success
-- `/api/auth/me` returns JWT payload **plus** `email` fetched from DB (email is not stored in the JWT)
-- After a successful profile update the cookie is refreshed so Navbar reflects the new display name immediately
-- Registration does **not** collect email — password recovery is admin-only
+- `PATCH /api/auth/profile` — updates `display_name` and optionally `password` (requires `current_password`); re-issues JWT on success
+- Profile page exposes only display name and password change — email field has been removed from UI
+- After a successful update the cookie is refreshed so Navbar reflects the new display name immediately
+- Registration and profile do **not** collect email — password recovery is admin-only
 
 ### Admin (`/admin`, `/api/admin/`)
 - `PATCH /api/admin/users/[id]` — resets any user's password (admin only, no current-password required)
