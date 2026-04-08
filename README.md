@@ -5,30 +5,48 @@
 ## 技術架構
 
 - **框架：** Next.js 16 App Router
-- **資料庫：** better-sqlite3（SQLite，WAL 模式）
-- **驗證：** JWT（httpOnly Cookie）
+- **資料庫：** Turso（雲端 SQLite，@libsql/client）
+- **驗證：** JWT（httpOnly Cookie，7 天效期）
 - **樣式：** Tailwind CSS 4 + 玻璃擬態設計
 - **語言：** TypeScript（strict 模式）
+- **部署：** Vercel（無伺服器）+ Vercel Blob（圖片儲存）
 
 ## 功能特色
 
-- 使用者註冊 / 登入 / 忘記密碼
+- 使用者註冊 / 登入 / 忘記密碼（Email 重設）
 - 建立與管理團購（含圖片上傳、多規格選項）
 - 公開團購頁面（以 slug 識別）
 - 訂單管理（建立、查看、付款確認）
 - 後台管理介面（管理使用者、團購）
-- 匯出訂單（Excel / CSV）
+- 匯出訂單（Excel XLSX 格式）
 - 鎖定團購防止新訂單
 
 ## 快速開始
 
-安裝相依套件：
+**1. 安裝相依套件**
 
 ```bash
 npm install
 ```
 
-啟動開發伺服器：
+**2. 建立環境變數檔案**
+
+在專案根目錄建立 `.env.local`：
+
+```
+TURSO_DATABASE_URL=libsql://your-db.turso.io
+TURSO_AUTH_TOKEN=your-auth-token
+JWT_SECRET=your-jwt-secret
+BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
+```
+
+**3. 初始化資料庫結構**
+
+```bash
+TURSO_DATABASE_URL=... TURSO_AUTH_TOKEN=... node scripts/setup-db.mjs
+```
+
+**4. 啟動開發伺服器**
 
 ```bash
 npm run dev
@@ -54,10 +72,6 @@ npm run lint     # 執行 ESLint
 清除 Next.js 快取（遇到建置問題時使用）：
 
 ```bash
-# Windows
-rd /s /q .next && npm run dev
-
-# Unix / macOS
 rm -rf .next && npm run dev
 ```
 
@@ -70,25 +84,31 @@ src/
 │   ├── buy/          # 公開團購頁面
 │   ├── dashboard/    # 使用者後台
 │   └── admin/        # 管理員後台
-├── components/       # 共用元件
-└── lib/
-    ├── db.ts         # SQLite 資料庫連線
-    ├── auth.ts       # JWT 驗證工具
-    └── utils.ts      # 共用工具函式
-data/
-└── group-buy.db      # SQLite 資料庫檔案
-public/
-└── uploads/          # 上傳圖片存放位置
+├── components/       # 共用元件（Navbar、GlassCard、GroupBuyForm）
+├── lib/
+│   ├── db.ts         # Turso 資料庫連線
+│   ├── auth.ts       # JWT 驗證工具
+│   ├── email.ts      # 密碼重設 Email
+│   └── utils.ts      # 共用工具函式
+├── middleware.ts     # 路由保護（/dashboard、/admin）
+└── proxy.ts          # Middleware 邏輯
+scripts/
+└── setup-db.mjs      # 資料庫初始化與管理員建立
 ```
 
 ## 資料庫
 
-資料庫位於 `data/group-buy.db`，首次執行時自動初始化，無需額外設定。
+使用 Turso 雲端 SQLite。資料表包含：`users`、`group_buys`、`options`、`orders`、`order_items`、`password_reset_tokens`。
 
-**資料表：** `users`、`group_buys`、`options`、`orders`、`order_items`、`password_reset_tokens`
+Schema 不自動遷移，需手動執行 `scripts/setup-db.mjs` 初始化或重設。
 
-## 部署
+## 部署（Vercel）
 
-可部署至任何支援 Node.js 的環境。若使用 Vercel，請注意 SQLite 檔案需持久化儲存（建議改用 Turso 或其他雲端資料庫）。
-
-詳細部署說明請參考 [Next.js 部署文件](https://nextjs.org/docs/app/building-your-application/deploying)。
+1. 將專案推送至 GitHub
+2. 在 Vercel 匯入專案並設定以下環境變數：
+   - `TURSO_DATABASE_URL`
+   - `TURSO_AUTH_TOKEN`
+   - `JWT_SECRET`
+   - `BLOB_READ_WRITE_TOKEN`（連結 Vercel Blob Store 後自動注入）
+   - `NEXT_PUBLIC_BASE_URL`（完整網域，用於密碼重設連結）
+   - `EMAIL_HOST`、`EMAIL_PORT`、`EMAIL_USER`、`EMAIL_PASS`（SMTP，選填）
