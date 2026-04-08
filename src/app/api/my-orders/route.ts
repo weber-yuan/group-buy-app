@@ -21,7 +21,7 @@ export async function GET() {
     let items: Array<{ order_id: number; label: string; option_name: string; quantity: number }> = [];
     if (orderIds.length > 0) {
       const itemsResult = await db.execute({
-        sql: `SELECT oi.order_id, opt.label, opt.name as option_name, oi.quantity FROM order_items oi JOIN options opt ON oi.option_id = opt.id WHERE oi.order_id IN (${orderIds.map(() => '?').join(',')})`,
+        sql: `SELECT oi.order_id, oi.option_id, opt.label, opt.name as option_name, oi.quantity FROM order_items oi JOIN options opt ON oi.option_id = opt.id WHERE oi.order_id IN (${orderIds.map(() => '?').join(',')})`,
         args: orderIds,
       });
       items = itemsResult.rows as unknown as typeof items;
