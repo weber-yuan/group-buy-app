@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import GlassCard from '@/components/GlassCard';
 import { formatDate } from '@/lib/utils';
@@ -30,6 +30,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'gb' | 'users'>('gb');
   const [msg, setMsg] = useState('');
+  const [resetingId, setResetingId] = useState<number | null>(null);
+  const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(d => {
@@ -50,6 +52,17 @@ export default function AdminPage() {
   };
 
   const notify = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 3000); };
+
+  const resetPassword = async (uid: number) => {
+    if (newPassword.length < 6) { notify('密碼至少 6 個字元'); return; }
+    const res = await fetch(`/api/admin/users/${uid}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: newPassword }),
+    });
+    if (res.ok) { notify('密碼已重設'); setResetingId(null); setNewPassword(''); }
+    else { const d = await res.json(); notify(d.error); }
+  };
 
   const deleteUser = async (uid: number, name: string) => {
     if (!confirm(`確定要刪除使用者「${name}」？`)) return;
@@ -155,21 +168,48 @@ export default function AdminPage() {
               </thead>
               <tbody>
                 {users.map(u => (
-                  <tr key={u.id} className="border-b border-white/5 hover:bg-white/5">
-                    <td className="p-4 text-white font-mono">{u.username}</td>
-                    <td className="p-4 text-white">{u.display_name}</td>
-                    <td className="p-4">
-                      {u.role === 'admin'
-                        ? <span className="text-yellow-400 text-xs bg-yellow-400/10 px-2 py-0.5 rounded-full">admin</span>
-                        : <span className="text-white/50 text-xs">user</span>}
-                    </td>
-                    <td className="p-4 text-white/50">{new Date(u.created_at).toLocaleDateString('zh-TW')}</td>
-                    <td className="p-4 text-right">
-                      {u.role !== 'admin' && (
-                        <button onClick={() => deleteUser(u.id, u.display_name)} className="text-red-400 hover:text-red-300 text-xs">刪除</button>
-                      )}
-                    </td>
-                  </tr>
+                  <React.Fragment key={u.id}>
+                    <tr className="border-b border-white/5 hover:bg-white/5">
+                      <td className="p-4 text-white font-mono">{u.username}</td>
+                      <td className="p-4 text-white">{u.display_name}</td>
+                      <td className="p-4">
+                        {u.role === 'admin'
+                          ? <span className="text-yellow-400 text-xs bg-yellow-400/10 px-2 py-0.5 rounded-full">admin</span>
+                          : <span className="text-white/50 text-xs">user</span>}
+                      </td>
+                      <td className="p-4 text-white/50">{new Date(u.created_at).toLocaleDateString('zh-TW')}</td>
+                      <td className="p-4 text-right flex items-center justify-end gap-3">
+                        <button
+                          onClick={() => { setResetingId(resetingId === u.id ? null : u.id); setNewPassword(''); }}
+                          className="text-indigo-400 hover:text-indigo-300 text-xs">
+                          重設密碼
+                        </button>
+                        {u.role !== 'admin' && (
+                          <button onClick={() => deleteUser(u.id, u.display_name)} className="text-red-400 hover:text-red-300 text-xs">刪除</button>
+                        )}
+                      </td>
+                    </tr>
+                    {resetingId === u.id && (
+                      <tr className="bg-white/5">
+                        <td colSpan={5} className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white/50 text-xs shrink-0">新密碼：</span>
+                            <input
+                              className="glass-input text-sm py-1 flex-1 max-w-xs"
+                              type="password"
+                              placeholder="至少 6 個字元"
+                              value={newPassword}
+                              onChange={e => setNewPassword(e.target.value)}
+                              onKeyDown={e => e.key === 'Enter' && resetPassword(u.id)}
+                              autoFocus
+                            />
+                            <button onClick={() => resetPassword(u.id)} className="btn-primary text-xs px-3 py-1">確認</button>
+                            <button onClick={() => { setResetingId(null); setNewPassword(''); }} className="btn-secondary text-xs px-3 py-1">取消</button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>

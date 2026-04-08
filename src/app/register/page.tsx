@@ -6,7 +6,7 @@ import GlassCard from '@/components/GlassCard';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ username: '', display_name: '', email: '', password: '', confirm_password: '' });
+  const [form, setForm] = useState({ username: '', display_name: '', password: '', confirm_password: '' });
   const [showPw, setShowPw] = useState(false);
   const [showCp, setShowCp] = useState(false);
   const [error, setError] = useState('');
@@ -53,19 +53,6 @@ export default function RegisterPage() {
               value={form.display_name}
               onChange={e => setForm(p => ({ ...p, display_name: e.target.value }))}
               required
-            />
-          </div>
-          <div>
-            <label className="block text-white/70 text-sm mb-1">
-              電子郵件 <span className="text-white/40">（選填，用於忘記密碼）</span>
-            </label>
-            <input
-              className="glass-input"
-              type="email"
-              placeholder="your@email.com"
-              value={form.email}
-              onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-              autoComplete="email"
             />
           </div>
           <div>
