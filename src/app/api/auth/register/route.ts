@@ -1,8 +1,7 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { getDb } from '@/lib/db';
 import { signToken, COOKIE_NAME } from '@/lib/auth';
-import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,10 +25,9 @@ export async function POST(request: NextRequest) {
     });
 
     const token = signToken({ id: Number(insertResult.lastInsertRowid), username, display_name, role: 'user' });
-    const cookieStore = await cookies();
-    cookieStore.set(COOKIE_NAME, token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
-
-    return Response.json({ ok: true });
+    const res = NextResponse.json({ ok: true });
+    res.cookies.set(COOKIE_NAME, token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
+    return res;
   } catch (e) {
     console.error('[POST /api/auth/register]', e);
     return Response.json({ error: '伺服器錯誤' }, { status: 500 });

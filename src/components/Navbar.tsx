@@ -51,7 +51,9 @@ export default function Navbar() {
                   管理員
                 </Link>
               )}
-              <span className="text-white/40 text-sm">目前的使用者：{user.display_name}</span>
+              <Link href="/dashboard/profile" className="px-3 py-1.5 text-sm text-white/60 hover:text-white border border-white/20 rounded-lg hover:bg-white/10 transition-all min-h-[36px]">
+                {user.display_name}
+              </Link>
               <button onClick={logout} className="px-3 py-1.5 text-sm text-white/60 hover:text-white border border-white/20 rounded-lg hover:bg-white/10 transition-all min-h-[36px]">
                 登出
               </button>
@@ -86,7 +88,7 @@ export default function Navbar() {
               {user.role === 'admin' && (
                 <Link href="/admin" className="py-2 text-yellow-300" onClick={() => setMenuOpen(false)}>管理員</Link>
               )}
-              <span className="py-1 text-white/40 text-sm">{user.display_name}</span>
+              <Link href="/dashboard/profile" className="py-2 text-white/60" onClick={() => setMenuOpen(false)}>個人資料（{user.display_name}）</Link>
               <button onClick={logout} className="py-2 text-left text-white/60">登出</button>
             </>
           ) : (
