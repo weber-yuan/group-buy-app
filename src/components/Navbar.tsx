@@ -51,8 +51,9 @@ export default function Navbar() {
                   管理員
                 </Link>
               )}
-              <Link href="/dashboard/profile" className="px-3 py-1.5 text-sm text-white/60 hover:text-white border border-white/20 rounded-lg hover:bg-white/10 transition-all min-h-[36px]">
-                {user.display_name}
+              <Link href="/dashboard/profile" className="px-3 py-1.5 text-sm text-white/60 hover:text-white border border-white/20 rounded-lg hover:bg-white/10 transition-all min-h-[36px] flex items-center gap-1">
+                <span>👤</span>
+                <span>{user.display_name}</span>
               </Link>
               <button onClick={logout} className="px-3 py-1.5 text-sm text-white/60 hover:text-white border border-white/20 rounded-lg hover:bg-white/10 transition-all min-h-[36px]">
                 登出
