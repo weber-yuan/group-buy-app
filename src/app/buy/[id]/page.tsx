@@ -57,6 +57,13 @@ export default function BuyPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(d => { if (d.user?.display_name) setName(d.user.display_name); })
+      .catch(() => {});
+  }, []);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');

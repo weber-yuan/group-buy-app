@@ -28,7 +28,13 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     if (!user || user.role !== 'admin') return Response.json({ error: '無權限' }, { status: 403 });
     if (String(user.id) === id) return Response.json({ error: '無法刪除自己' }, { status: 400 });
 
-    await getDb().execute({ sql: 'DELETE FROM users WHERE id = ?', args: [id] });
+    const db = getDb();
+    // Nullify orders placed by this user in group buys they didn't organize
+    await db.execute({ sql: 'UPDATE orders SET user_id = NULL WHERE user_id = ?', args: [id] });
+    // Delete group buys organized by this user (cascades to options, orders, order_items)
+    await db.execute({ sql: 'DELETE FROM group_buys WHERE organizer_id = ?', args: [id] });
+    // Delete the user (password_reset_tokens cascade automatically)
+    await db.execute({ sql: 'DELETE FROM users WHERE id = ?', args: [id] });
     return Response.json({ ok: true });
   } catch (e) {
     console.error('[DELETE /api/admin/users/[id]]', e);

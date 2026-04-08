@@ -81,10 +81,30 @@ The `image_url` column in `group_buys` and `options` stores either a plain URL s
 - `/api/upload` uses `@vercel/blob` (`put(filename, file, { access: 'public' })`) — requires `BLOB_READ_WRITE_TOKEN` env var
 - Returns `{ url }` pointing to Vercel Blob CDN
 
+### Group Buy Deletion
+There are **two** delete paths with different behaviour:
+- `DELETE /api/group-buys/[id]` (organizer or admin) — manually cascades `order_items` → `orders` → `options` → `group_buys`, then calls `del()` on all collected Vercel Blob image URLs (best-effort)
+- `DELETE /api/admin/group-buys/[id]` (admin panel shortcut) — issues a single `DELETE FROM group_buys` and relies on DB-level `ON DELETE CASCADE`; **does not** delete Vercel Blob images
+
 ### Export Endpoints
 Two overlapping XLSX export routes exist (minor format differences):
 - `GET /api/group-buys/[id]/excel` — uses `getUserFromRequest(req)`; sheets: "參加名單" + "統計摘要"
 - `GET /api/group-buys/[id]/export` — uses `getCurrentUser()`; sheets: "訂單名單" + "統計"
+
+### Order Management API
+Organizer-facing endpoints under `/api/group-buys/[id]/orders/`:
+- `GET` — list all orders for a group buy (organizer or admin only)
+- `POST` — submit a new order (public; associates `user_id` from JWT if logged in)
+- `PATCH /[orderId]` — mark order paid/unpaid (`{ is_paid }`)
+- `DELETE /[orderId]` — delete an order
+
+Duplicate payment route: `PUT /api/orders/[id]/payment` does the same as the `PATCH` above with slightly different auth lookup — prefer the nested route for new code.
+
+### My Orders (`/my-orders`, `/api/my-orders`)
+Logged-in users can view and manage their own past orders:
+- `GET /api/my-orders` — returns all orders where `user_id = current user`, joined with group buy info and items
+- `PATCH /api/my-orders/[orderId]` — edit `participant_name` or replace items; blocked if group buy is locked or expired
+- `DELETE /api/my-orders/[orderId]` — cancel own order; blocked if locked or expired
 
 ### Utility Functions (`src/lib/utils.ts`)
 | Function | Purpose |
@@ -97,15 +117,21 @@ Two overlapping XLSX export routes exist (minor format differences):
 
 ### Profile / Account (`/api/auth/profile`, `/dashboard/profile`)
 - `PATCH /api/auth/profile` — updates `display_name` and optionally `password` (requires `current_password`); re-issues JWT on success
-- Profile page exposes only display name and password change — email field has been removed from UI
+- Profile page exposes only display name and password change — email field is not in the UI
 - After a successful update the cookie is refreshed so Navbar reflects the new display name immediately
-- Registration and profile do **not** collect email — password recovery is admin-only
+- Registration does **not** collect email
+
+### Password Reset
+Two flows exist:
+1. **Self-service via email** (`/forgot-password`, `/reset-password`) — requires the `email` column to be populated on the user record; tokens expire after 1 hour; `sendResetEmail` in `src/lib/email.ts` sends SMTP mail or logs the link to console if `EMAIL_USER` is unset
+2. **Admin reset** (`PATCH /api/admin/users/[id]`) — no email required; admin sets the password directly
 
 ### Admin (`/admin`, `/api/admin/`)
-- `PATCH /api/admin/users/[id]` — resets any user's password (admin only, no current-password required)
-- `DELETE /api/admin/users/[id]` — deletes user; cannot delete self
-- `DELETE /api/admin/group-buys/[id]` — deletes group buy via the shared group-buy delete logic
-- Deleting a group buy cascades: removes `order_items` → `orders` → `options` → `group_buys` and calls `del()` on all Vercel Blob image URLs
+- `GET /api/admin/users` — list all users
+- `PATCH /api/admin/users/[id]` — resets any user's password (no current-password required)
+- `DELETE /api/admin/users/[id]` — deletes user; cannot delete self; manually nullifies `orders.user_id`, deletes owned group buys (DB cascade handles options/orders/order_items), then deletes the user
+- `GET /api/admin/group-buys` — list all group buys
+- `DELETE /api/admin/group-buys/[id]` — deletes via DB cascade only (no Vercel Blob cleanup)
 
 ### Components (`src/components/`)
 | Component | Purpose |

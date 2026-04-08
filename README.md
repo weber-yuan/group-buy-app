@@ -17,11 +17,13 @@
 - 個人資料管理（更改顯示名稱、密碼）
 - 建立與管理團購（含圖片上傳、多規格選項）
 - 公開團購頁面（以 slug 識別）
+- 參加團購時自動帶入已登入使用者的顯示名稱
 - 訂單管理（建立、查看、修改數量 / 名稱、刪除）
+- 我的訂單頁面（查看並管理自己參加的所有團購）
 - 匯出訂單（Excel XLSX 格式）
 - 鎖定團購防止新訂單
-- **管理員後台：** 管理所有使用者與團購、重設任意使用者密碼
-- 刪除團購時自動清除雲端圖片與所有相關資料
+- 忘記密碼自助重設（需帳號有設定電子郵件）
+- **管理員後台：** 管理所有使用者與團購、重設任意使用者密碼、刪除使用者帳號
 
 ## 快速開始
 
@@ -62,7 +64,7 @@ npm run dev
 |------|------|
 | admin | admin1234 |
 
-> 忘記密碼請聯繫管理員，由管理員後台重設。
+> 忘記密碼可透過「忘記密碼」頁面以電子郵件自助重設（需帳號已設定 email），或聯繫管理員由後台直接重設。
 
 ## 常用指令
 
@@ -84,18 +86,22 @@ rm -rf .next && npm run dev
 ```
 src/
 ├── app/
-│   ├── api/          # API Route Handlers
-│   ├── buy/          # 公開團購頁面
-│   ├── dashboard/    # 使用者後台（含個人資料頁）
-│   └── admin/        # 管理員後台
-├── components/       # 共用元件（Navbar、GlassCard、GroupBuyForm）
+│   ├── api/              # API Route Handlers
+│   ├── buy/              # 公開團購頁面
+│   ├── my-orders/        # 我的訂單
+│   ├── forgot-password/  # 忘記密碼
+│   ├── reset-password/   # 重設密碼
+│   ├── dashboard/        # 使用者後台（含個人資料頁）
+│   └── admin/            # 管理員後台
+├── components/           # 共用元件（Navbar、GlassCard、GroupBuyForm）
 ├── lib/
-│   ├── db.ts         # Turso 資料庫連線
-│   ├── auth.ts       # JWT 驗證工具
-│   └── utils.ts      # 共用工具函式
-└── proxy.ts          # 路由保護（/dashboard、/admin）
+│   ├── db.ts             # Turso 資料庫連線
+│   ├── auth.ts           # JWT 驗證工具
+│   ├── email.ts          # 寄送重設密碼信件
+│   └── utils.ts          # 共用工具函式
+└── proxy.ts              # 路由保護（/dashboard、/admin）
 scripts/
-└── setup-db.mjs      # 資料庫初始化與管理員建立
+└── setup-db.mjs          # 資料庫初始化與管理員建立
 ```
 
 ## 資料庫
