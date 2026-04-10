@@ -33,13 +33,6 @@ export default function AdminPage() {
   const [resetingId, setResetingId] = useState<number | null>(null);
   const [newPassword, setNewPassword] = useState('');
 
-  useEffect(() => {
-    fetch('/api/auth/me').then(r => r.json()).then(d => {
-      if (!d.user || d.user.role !== 'admin') { router.push('/'); return; }
-      loadAll();
-    });
-  }, [router]);
-
   const loadAll = () => {
     Promise.all([
       fetch('/api/admin/users').then(r => r.json()),
@@ -50,6 +43,13 @@ export default function AdminPage() {
       setLoading(false);
     });
   };
+
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.json()).then(d => {
+      if (!d.user || d.user.role !== 'admin') { router.push('/'); return; }
+      loadAll();
+    });
+  }, [router]);
 
   const notify = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 3000); };
 

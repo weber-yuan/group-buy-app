@@ -18,9 +18,10 @@ Initialize or reset the Turso database schema (requires env vars):
 TURSO_DATABASE_URL=... TURSO_AUTH_TOKEN=... node scripts/setup-db.mjs
 ```
 
-Clear the Next.js cache when encountering stale build issues:
+Clear the Next.js cache when encountering stale build issues (e.g. after abnormal shutdown):
 ```bash
-rm -rf .next && npm run dev
+rm -rf .next && npm run dev        # bash / Git Bash
+rmdir /s /q .next && npm run dev   # Windows cmd (stop node.exe first)
 ```
 
 ## Architecture Overview
@@ -59,6 +60,9 @@ rm -rf .next && npm run dev
 - Every handler **must** be wrapped in try-catch returning `Response.json({ error: '...' }, { status: 500 })`
 - Only HTTP-verb exports (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) in route files — extra named exports break Next.js routing
 - `params` is a **Promise** in Next.js 16 → always `await params` before destructuring
+
+### `'use client'` Function Declaration Order
+In client components, `const` helper functions called inside a `useEffect` **must be declared before** that `useEffect` — `const` is not hoisted. Declare the function first, then the effect that calls it. Violating this triggers an ESLint error (`no-use-before-define`).
 
 ### Client-Side Data Fetching
 Pages are mostly `'use client'` with `useEffect` + `fetch`. Use `safeJson` to handle non-JSON error bodies:
@@ -114,6 +118,7 @@ Logged-in users can view and manage their own past orders:
 | `isExpired(endDate)` | Returns `true` if deadline has passed |
 | `getLabel(index)` | Returns `A`, `B`, `C`… for option display labels |
 | `parseImages(imageUrl)` | Decodes plain URL or JSON array → `string[]` |
+| `randomFakeName()` | Returns a random zh-TW placeholder name (for testing/demo) |
 
 ### Profile / Account (`/api/auth/profile`, `/dashboard/profile`)
 - `PATCH /api/auth/profile` — updates `display_name` and optionally `password` (requires `current_password`); re-issues JWT on success
