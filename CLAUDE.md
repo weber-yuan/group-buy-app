@@ -144,6 +144,7 @@ Two flows exist:
 | `Navbar.tsx` | Global nav; fetches `/api/auth/me`; logged-in username is a `Link` to `/dashboard/profile` |
 | `GlassCard.tsx` | Reusable glass-morphism card wrapper |
 | `GroupBuyForm.tsx` | Full create/edit form — image upload, per-option images, date+hour selector |
+| `ImageLightbox.tsx` | Fullscreen image overlay; closes on backdrop click, × button, or Escape key |
 
 ### Styling
 - Tailwind CSS 4 with glass-morphism theme (`bg-white/10 backdrop-blur-md`)

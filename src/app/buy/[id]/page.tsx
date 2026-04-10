@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import GlassCard from '@/components/GlassCard';
+import ImageLightbox from '@/components/ImageLightbox';
 import { formatDate, getDaysLeft, parseImages } from '@/lib/utils';
 
 interface Option {
@@ -34,6 +35,7 @@ export default function BuyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   const load = useCallback(() => {
     fetch(`/api/group-buys/${id}`)
@@ -112,13 +114,14 @@ export default function BuyPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
+      {lightbox && <ImageLightbox src={lightbox} onClose={() => setLightbox(null)} />}
       {/* Group buy info */}
       <GlassCard className="overflow-hidden mb-6">
         {(() => {
           const imgs = parseImages(gb.image_url);
           if (imgs.length === 0) return null;
           if (imgs.length === 1) return (
-            <div className="h-48 overflow-hidden">
+            <div className="h-48 overflow-hidden cursor-zoom-in" onClick={() => setLightbox(imgs[0])}>
               <img src={imgs[0]} alt={gb.title} className="w-full h-full object-cover" />
             </div>
           );
@@ -126,7 +129,8 @@ export default function BuyPage() {
             <div className="flex gap-1 h-48 overflow-hidden">
               {imgs.map((url, i) => (
                 <img key={i} src={url} alt={`${gb.title} ${i + 1}`}
-                  className="flex-1 object-cover" style={{ minWidth: 0 }} />
+                  className="flex-1 object-cover cursor-zoom-in" style={{ minWidth: 0 }}
+                  onClick={() => setLightbox(url)} />
               ))}
             </div>
           );
@@ -170,7 +174,8 @@ export default function BuyPage() {
                       <div className="flex items-start gap-2">
                         {opt.image_url && (
                           <img src={opt.image_url} alt={opt.name}
-                            className="w-14 h-14 object-cover rounded-lg shrink-0 border border-white/20" />
+                            className="w-14 h-14 object-cover rounded-lg shrink-0 border border-white/20 cursor-zoom-in"
+                            onClick={() => setLightbox(opt.image_url!)} />
                         )}
                         <div>
                           <div className="flex items-center gap-2">
