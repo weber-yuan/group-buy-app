@@ -35,6 +35,7 @@ rmdir /s /q .next && npm run dev   # Windows cmd (stop node.exe first)
 - Schema is **not** auto-migrated; to reset, run `scripts/setup-db.mjs`
 - **Tables:** `users`, `group_buys`, `options`, `orders`, `order_items`, `password_reset_tokens`
 - Default admin: `admin` / `admin1234` (seeded by setup-db.mjs)
+- `autoLockExpired()` flips `is_locked = 1` on any unlocked group buy whose `end_date` has passed — called at the top of `GET /api/group-buys` and `GET /api/group-buys/[id]` as a poor-man's cron (there is no actual scheduler). Expired buys therefore show as locked the next time anyone hits either endpoint.
 
 ### Authentication (`src/lib/auth.ts`)
 - JWT stored in httpOnly cookie `gb_token`, 7-day expiry, `secure: true` in production
@@ -158,6 +159,12 @@ Two flows exist:
 - End dates stored as `YYYY-MM-DDTHH:00` (ISO with hour, no minutes)
 - `formatDate()` detects the `T` separator and displays the hour in Traditional Chinese
 - `getDaysLeft()` respects the hour component for accurate deadline calculation
+- `isExpired()` in `src/lib/utils.ts` is the single source of truth for expiry — both the homepage filter and `autoLockExpired()` use it
+
+### Homepage Visibility Filter (`src/app/page.tsx`)
+- Only buys with `is_public = 1` are returned by `GET /api/group-buys`
+- Client-side filter: `!gb.is_locked && getDaysLeft(gb.end_date) >= 0` — keeps the expiry predicate as defense-in-depth in case `autoLockExpired()` has not yet run for a freshly-expired buy
+- Net effect: manually locked **and** expired buys are both hidden from the homepage uniformly; they remain reachable by direct `/buy/[slug]` link
 
 ### Environment Variables
 | Variable | Purpose |
