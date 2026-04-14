@@ -11,6 +11,7 @@ interface OrderRow {
   is_paid: number;
   submitted_at: string;
   group_buy_id: number;
+  group_buy_slug: string;
   title: string;
   end_date: string;
   is_locked: number;
@@ -234,7 +235,7 @@ export default function MyOrdersPage() {
               )}
 
               <div className="flex gap-2">
-                <Link href={`/buy/${order.group_buy_id}`} className="btn-secondary text-xs px-4 py-1.5">
+                <Link href={`/buy/${order.group_buy_slug}`} className="btn-secondary text-xs px-4 py-1.5">
                   查看團購
                 </Link>
                 {!expired && !isEditing && (

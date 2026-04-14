@@ -23,6 +23,21 @@ interface GroupBuy {
   is_locked: number;
 }
 
+interface MyOrderItem {
+  order_id: number;
+  option_id: number;
+  label: string;
+  option_name: string;
+  quantity: number;
+}
+
+interface MyOrder {
+  order_id: number;
+  participant_name: string;
+  group_buy_id: number;
+  items: MyOrderItem[];
+}
+
 export default function BuyPage() {
   const params = useParams();
   const id = params.id as string;
@@ -36,6 +51,7 @@ export default function BuyPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [myOrder, setMyOrder] = useState<MyOrder | null>(null);
 
   const load = useCallback(() => {
     fetch(`/api/group-buys/${id}`)
@@ -65,6 +81,25 @@ export default function BuyPage() {
       .then(d => { if (d.user?.display_name) setName(d.user.display_name); })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!gb) return;
+    fetch('/api/my-orders')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d?.orders) return;
+        const mine = d.orders.find((o: { group_buy_id: number }) => o.group_buy_id === gb.id);
+        if (!mine) return;
+        const orderItems = (d.items as MyOrderItem[]).filter(it => it.order_id === mine.order_id);
+        setMyOrder({
+          order_id: mine.order_id,
+          participant_name: mine.participant_name,
+          group_buy_id: mine.group_buy_id,
+          items: orderItems,
+        });
+      })
+      .catch(() => {});
+  }, [gb]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,7 +181,54 @@ export default function BuyPage() {
         </div>
       </GlassCard>
 
-      {locked ? (
+      {myOrder ? (
+        <GlassCard className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">你團購的資料</h2>
+          </div>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="block text-white/70 text-sm mb-1">您的姓名</label>
+              <div className="glass-input opacity-70 cursor-not-allowed">{myOrder.participant_name}</div>
+            </div>
+            <div>
+              <label className="block text-white/70 text-sm mb-3">您選擇的品項</label>
+              <div className="flex flex-col gap-3">
+                {options.map(opt => {
+                  const item = myOrder.items.find(it => it.option_id === opt.id);
+                  const qty = item?.quantity ?? 0;
+                  return (
+                    <div key={opt.id} className="bg-white/5 rounded-xl p-4 flex items-center justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start gap-2">
+                          {opt.image_url && (
+                            <img src={opt.image_url} alt={opt.name}
+                              className="w-14 h-14 object-cover rounded-lg shrink-0 border border-white/20 cursor-zoom-in"
+                              onClick={() => setLightbox(opt.image_url!)} />
+                          )}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="bg-indigo-500/40 text-indigo-200 font-bold w-7 h-7 flex items-center justify-center rounded-full text-sm shrink-0">
+                                {opt.label}
+                              </span>
+                              <span className="text-white font-medium">{opt.name}</span>
+                            </div>
+                            {opt.description && (
+                              <p className="text-white/50 text-xs mt-1 ml-9">{opt.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-white font-bold text-lg w-16 text-right">× {qty}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <p className="text-white/50 text-xs text-center">如要更改請至「我參加的團購」點選編輯</p>
+          </div>
+        </GlassCard>
+      ) : locked ? (
         <GlassCard className="p-8 text-center">
           <div className="text-4xl mb-3">🔒</div>
           <h2 className="text-xl font-semibold text-white mb-2">此團購已截止</h2>

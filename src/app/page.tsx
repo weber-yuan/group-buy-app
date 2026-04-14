@@ -25,8 +25,9 @@ export default function HomePage() {
       .then(r => r.json())
       .then(d => {
         // Handle both array and wrapped response
-        const list = Array.isArray(d) ? d : (d.groupBuys || []);
-        setGroupBuys(list);
+        const list: GroupBuy[] = Array.isArray(d) ? d : (d.groupBuys || []);
+        const visible = list.filter(gb => !gb.is_locked && getDaysLeft(gb.end_date) >= 0);
+        setGroupBuys(visible);
         setLoading(false);
       });
   }, []);

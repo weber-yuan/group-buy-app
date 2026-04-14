@@ -8,13 +8,13 @@ export async function GET() {
 
     const db = getDb();
     const rowsResult = await db.execute({
-      sql: `SELECT o.id as order_id, o.participant_name, o.is_paid, o.submitted_at, gb.id as group_buy_id, gb.title, gb.end_date, gb.is_locked, u.display_name as organizer_name FROM orders o JOIN group_buys gb ON o.group_buy_id = gb.id JOIN users u ON gb.organizer_id = u.id WHERE o.user_id = ? ORDER BY o.submitted_at DESC`,
+      sql: `SELECT o.id as order_id, o.participant_name, o.is_paid, o.submitted_at, gb.id as group_buy_id, gb.slug as group_buy_slug, gb.title, gb.end_date, gb.is_locked, u.display_name as organizer_name FROM orders o JOIN group_buys gb ON o.group_buy_id = gb.id JOIN users u ON gb.organizer_id = u.id WHERE o.user_id = ? ORDER BY o.submitted_at DESC`,
       args: [user.id],
     });
 
     const rows = rowsResult.rows as unknown as Array<{
       order_id: number; participant_name: string; is_paid: number; submitted_at: string;
-      group_buy_id: number; title: string; end_date: string; is_locked: number; organizer_name: string;
+      group_buy_id: number; group_buy_slug: string; title: string; end_date: string; is_locked: number; organizer_name: string;
     }>;
 
     const orderIds = rows.map(r => r.order_id);
