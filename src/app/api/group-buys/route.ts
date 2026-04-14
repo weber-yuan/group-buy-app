@@ -1,9 +1,10 @@
 import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { getDb, autoLockExpired } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
+    await autoLockExpired();
     const db = getDb();
     const { searchParams } = request.nextUrl;
     const mine = searchParams.get('mine');

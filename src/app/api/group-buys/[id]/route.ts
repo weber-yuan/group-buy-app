@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { getDb, autoLockExpired } from '@/lib/db';
 import { del } from '@vercel/blob';
 import { parseImages } from '@/lib/utils';
 
@@ -27,6 +27,7 @@ async function resolveGb(param: string): Promise<GbRow | undefined> {
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    await autoLockExpired();
     const db = getDb();
     const gb = await resolveGb(id);
     if (!gb) return Response.json({ error: '找不到' }, { status: 404 });
