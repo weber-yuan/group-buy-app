@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
+import { getJwtSecret } from './jwt-secret';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'group-buy-secret-key-change-in-production';
 export const COOKIE_NAME = 'gb_token';
 
 export interface JWTPayload {
@@ -13,12 +13,12 @@ export interface JWTPayload {
 }
 
 export function signToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' });
 }
 
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+    return jwt.verify(token, getJwtSecret()) as JWTPayload;
   } catch {
     return null;
   }
