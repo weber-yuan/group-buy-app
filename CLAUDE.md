@@ -39,6 +39,8 @@ rmdir /s /q .next && npm run dev   # Windows cmd (stop node.exe first)
 
 ### Authentication (`src/lib/auth.ts`)
 - JWT stored in httpOnly cookie `gb_token`, 7-day expiry, `secure: true` in production
+- Signed/verified with `jsonwebtoken` (HS256) on the Node side
+- **JWT secret comes from `src/lib/jwt-secret.ts` (`getJwtSecret()`)** — the single source of truth, imported by both `auth.ts` and `proxy.ts`. In production (`NODE_ENV=production`) it **throws if `JWT_SECRET` is unset** — there is intentionally **no hardcoded fallback** (a committed default could be used to forge admin tokens). Dev falls back to an obviously-insecure dev secret.
 - Two helper patterns — use the right one per context:
   - **Server Components & Route Handlers using `cookies()`:** `await getCurrentUser()` (async)
   - **Route Handlers with a `NextRequest` arg:** `getUserFromRequest(req)` (sync) — reads from `req.cookies`
@@ -50,6 +52,7 @@ rmdir /s /q .next && npm run dev   # Windows cmd (stop node.exe first)
 - Exports `proxy(request)` function and `config` — Next.js picks these up automatically
 - `/dashboard/*` requires a valid JWT; redirects to `/login` if missing/invalid
 - `/admin/*` additionally requires `role === 'admin'`; non-admin redirects to `/`
+- **Verifies JWT with `jose`, NOT `jsonwebtoken`** — the proxy runs in the Edge runtime on Vercel, where `jsonwebtoken`'s dependency on Node `crypto` throws and silently fails every verification (this was the root cause of the "logged out when creating a group buy" bug: all `/dashboard/*` requests bounced to `/login` in production). `jose` works on both Edge and Node and verifies the same HS256 token. **Do not import `jsonwebtoken` or `@/lib/auth` here** — both pull Node-only modules into the Edge bundle. Import only the dependency-free `@/lib/jwt-secret`.
 
 ### URL Routing for Group Buys
 - Group buys have an integer `id` (DB PK) and a random 8-char base-36 `slug` (public-facing)
@@ -171,7 +174,14 @@ Two flows exist:
 |----------|---------|
 | `TURSO_DATABASE_URL` | libsql:// URL — must not have trailing newline |
 | `TURSO_AUTH_TOKEN` | Turso auth token — must not have trailing newline |
-| `JWT_SECRET` | JWT signing secret |
+| `JWT_SECRET` | JWT signing secret — **required in production** (`getJwtSecret()` throws if unset; no fallback) |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob access token (auto-injected when Blob store linked) |
 | `NEXT_PUBLIC_BASE_URL` | Full origin URL (used in password reset email links) |
+| `ADMIN_PASSWORD` | Optional; password for the `admin` user seeded by `setup-db.mjs`. If unset, a random one is generated and printed once |
 | `EMAIL_HOST/PORT/USER/PASS` | SMTP config (optional); if `EMAIL_USER` is unset, reset links log to console |
+
+> On Vercel, env var changes only apply after a **redeploy** (a "Needs Attention" badge means the var exists but the live deployment predates it).
+
+### Security Headers (`next.config.ts`)
+- `headers()` applies a baseline set to all routes: HSTS, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`
+- CSP is intentionally **not** set (a strict policy needs nonces to avoid breaking Next.js/Tailwind inline styles — deferred)
