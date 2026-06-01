@@ -34,7 +34,7 @@ rmdir /s /q .next && npm run dev   # Windows cmd (stop node.exe first)
 - All queries are async: `await db.execute({ sql, args })` — results in `.rows`, last insert id in `.lastInsertRowid`
 - Schema is **not** auto-migrated; to reset, run `scripts/setup-db.mjs`
 - **Tables:** `users`, `group_buys`, `options`, `orders`, `order_items`, `password_reset_tokens`
-- Default admin: `admin` / `admin1234` (seeded by setup-db.mjs)
+- Default admin user `admin` is seeded by setup-db.mjs; its password comes from the `ADMIN_PASSWORD` env var, or a random one printed once at setup if unset (no fixed default)
 - `autoLockExpired()` flips `is_locked = 1` on any unlocked group buy whose `end_date` has passed — called at the top of `GET /api/group-buys` and `GET /api/group-buys/[id]` as a poor-man's cron (there is no actual scheduler). Expired buys therefore show as locked the next time anyone hits either endpoint.
 
 ### Authentication (`src/lib/auth.ts`)

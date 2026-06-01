@@ -1,5 +1,6 @@
 import { createClient } from '@libsql/client';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 
 const db = createClient({
   url: process.env.TURSO_DATABASE_URL,
@@ -79,12 +80,15 @@ await db.executeMultiple(`
 // Create admin user if not exists
 const adminResult = await db.execute({ sql: 'SELECT id FROM users WHERE username = ?', args: ['admin'] });
 if (!adminResult.rows[0]) {
-  const hash = bcrypt.hashSync('admin1234', 10);
+  // Never ship a known default password. Use ADMIN_PASSWORD if provided,
+  // otherwise generate a random one and print it once.
+  const adminPassword = process.env.ADMIN_PASSWORD || randomBytes(9).toString('base64url');
+  const hash = bcrypt.hashSync(adminPassword, 10);
   await db.execute({
     sql: 'INSERT INTO users (username, display_name, password_hash, role) VALUES (?, ?, ?, ?)',
     args: ['admin', '管理員', hash, 'admin'],
   });
-  console.log('✅ Admin user created (admin / admin1234)');
+  console.log(`✅ Admin user created (admin / ${adminPassword}) — save this password now.`);
 }
 
 console.log('✅ Database schema initialized successfully');
