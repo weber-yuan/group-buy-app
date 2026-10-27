@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import GroupBuyForm, { GroupBuyFormData, resolveFormImages, resolveOptionImage } from '@/components/GroupBuyForm';
@@ -27,40 +27,44 @@ export default function EditPage() {
   const [error, setError] = useState('');
   const [notFound, setNotFound] = useState(false);
 
-  const load = useCallback(async () => {
-    const [gbRes, meRes] = await Promise.all([
-      fetch(`/api/group-buys/${id}`),
-      fetch('/api/auth/me'),
-    ]);
-    const meData = await meRes.json();
-    if (!meData.user) { router.push('/login'); return; }
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [gbRes, meRes] = await Promise.all([
+        fetch(`/api/group-buys/${id}`),
+        fetch('/api/auth/me'),
+      ]);
+      const meData = await meRes.json();
+      if (cancelled) return;
+      if (!meData.user) { router.push('/login'); return; }
 
-    if (!gbRes.ok) { setNotFound(true); return; }
-    const gb: RawGroupBuy = await gbRes.json();
+      if (!gbRes.ok) { setNotFound(true); return; }
+      const gb: RawGroupBuy = await gbRes.json();
+      if (cancelled) return;
 
-    if (gb.organizer_id !== meData.user.id && meData.user.role !== 'admin') {
-      router.push('/dashboard');
-      return;
-    }
+      if (gb.organizer_id !== meData.user.id && meData.user.role !== 'admin') {
+        router.push('/dashboard');
+        return;
+      }
 
-    setInitialData({
-      title: gb.title,
-      description: gb.description ?? '',
-      start_date: gb.start_date,
-      end_date: gb.end_date,
-      is_public: gb.is_public === 1,
-      image_urls: parseImages(gb.image_url),
-      options: (gb.options ?? []).map(o => ({
-        id: o.id,
-        label: o.label,
-        name: o.name,
-        description: o.description ?? '',
-        image_url: o.image_url ?? '',
-      })),
-    });
+      setInitialData({
+        title: gb.title,
+        description: gb.description ?? '',
+        start_date: gb.start_date,
+        end_date: gb.end_date,
+        is_public: gb.is_public === 1,
+        image_urls: parseImages(gb.image_url),
+        options: (gb.options ?? []).map(o => ({
+          id: o.id,
+          label: o.label,
+          name: o.name,
+          description: o.description ?? '',
+          image_url: o.image_url ?? '',
+        })),
+      });
+    })();
+    return () => { cancelled = true; };
   }, [id, router]);
-
-  useEffect(() => { load(); }, [load]);
 
   const handleSubmit = async (form: GroupBuyFormData) => {
     if (form.options.some(o => !o.name.trim())) {
