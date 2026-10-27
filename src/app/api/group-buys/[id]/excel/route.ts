@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromRequest } from '@/lib/auth';
 import { getDb } from '@/lib/db';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -39,10 +39,11 @@ export async function GET(req: NextRequest, { params }: Params) {
       items = itemsResult.rows as unknown as typeof items;
     }
 
-    const wb = XLSX.utils.book_new();
+    const wb = new ExcelJS.Workbook();
 
     const headers = ['姓名', ...options.map(o => `${o.label}. ${o.name}`), '已繳費', '提交時間'];
-    const sheet1Data = [headers];
+    const ws1 = wb.addWorksheet('參加名單');
+    ws1.addRow(headers);
     for (const order of orders) {
       const row: (string | number)[] = [order.participant_name];
       for (const opt of options) {
@@ -51,25 +52,22 @@ export async function GET(req: NextRequest, { params }: Params) {
       }
       row.push(order.is_paid ? '是' : '否');
       row.push(order.submitted_at);
-      sheet1Data.push(row as string[]);
+      ws1.addRow(row);
     }
-    const ws1 = XLSX.utils.aoa_to_sheet(sheet1Data);
-    XLSX.utils.book_append_sheet(wb, ws1, '參加名單');
 
-    const sheet2Data = [['品項', '人數', '總數量']];
+    const ws2 = wb.addWorksheet('統計摘要');
+    ws2.addRow(['品項', '人數', '總數量']);
     for (const opt of options) {
       const optItems = items.filter(it => it.option_id === opt.id);
       const count = optItems.length;
       const total = optItems.reduce((sum, it) => sum + it.quantity, 0);
-      sheet2Data.push([`${opt.label}. ${opt.name}`, String(count), String(total)]);
+      ws2.addRow([`${opt.label}. ${opt.name}`, count, total]);
     }
-    const ws2 = XLSX.utils.aoa_to_sheet(sheet2Data);
-    XLSX.utils.book_append_sheet(wb, ws2, '統計摘要');
 
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const buf = await wb.xlsx.writeBuffer();
     const filename = encodeURIComponent(`${gb.title}_名單.xlsx`);
 
-    return new NextResponse(buf, {
+    return new NextResponse(buf as ArrayBuffer, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': `attachment; filename*=UTF-8''${filename}`,

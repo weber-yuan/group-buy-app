@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { getDb } from '@/lib/db';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -24,7 +24,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const itemsResult = await db.execute({ sql: 'SELECT * FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE group_buy_id = ?)', args: [id] });
     const allItems = itemsResult.rows as unknown as Array<{ order_id: number; option_id: number; quantity: number }>;
 
-    const wb = XLSX.utils.book_new();
+    const wb = new ExcelJS.Workbook();
 
     const headers = ['姓名', ...options.map(o => `${o.label}. ${o.name}`), '是否繳費', '提交時間'];
     const rows = orders.map(order => {
@@ -35,8 +35,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       });
       return [order.participant_name, ...qtys, order.is_paid ? '是' : '否', order.submitted_at];
     });
-    const ws1 = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    XLSX.utils.book_append_sheet(wb, ws1, '訂單名單');
+    const ws1 = wb.addWorksheet('訂單名單');
+    ws1.addRow(headers);
+    ws1.addRows(rows);
 
     const statHeaders = ['品項', '標籤', '人數', '總數量'];
     const statRows = options.map(opt => {
@@ -45,13 +46,14 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       const total = optItems.reduce((sum, i) => sum + i.quantity, 0);
       return [opt.name, opt.label, people, total];
     });
-    const ws2 = XLSX.utils.aoa_to_sheet([statHeaders, ...statRows]);
-    XLSX.utils.book_append_sheet(wb, ws2, '統計');
+    const ws2 = wb.addWorksheet('統計');
+    ws2.addRow(statHeaders);
+    ws2.addRows(statRows);
 
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const buf = await wb.xlsx.writeBuffer();
     const filename = encodeURIComponent(`${gb.title}_訂單.xlsx`);
 
-    return new Response(buf, {
+    return new Response(buf as ArrayBuffer, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': `attachment; filename*=UTF-8''${filename}`,
